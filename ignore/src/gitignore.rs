@@ -7,17 +7,14 @@ Note that this module implements the specification as described in the
 the `git` command line tool.
 */
 
-use std::cell::RefCell;
 use std::env;
 use std::fs::File;
 use std::io::{self, BufRead, Read};
 use std::path::{Path, PathBuf};
 use std::str;
-use std::sync::Arc;
 
 use globset::{Candidate, GlobBuilder, GlobSet, GlobSetBuilder};
 use regex::bytes::Regex;
-use thread_local::ThreadLocal;
 
 use pathutil::{is_file_name, strip_prefix};
 use {Error, Match, PartialErrorBuilder};
@@ -83,7 +80,6 @@ pub struct Gitignore {
     globs: Vec<Glob>,
     num_ignores: u64,
     num_whitelists: u64,
-    matches: Option<Arc<ThreadLocal<RefCell<Vec<usize>>>>>,
 }
 
 impl Gitignore {
@@ -149,7 +145,6 @@ impl Gitignore {
             globs: vec![],
             num_ignores: 0,
             num_whitelists: 0,
-            matches: None,
         }
     }
 
@@ -256,10 +251,9 @@ impl Gitignore {
             return Match::None;
         }
         let path = path.as_ref();
-        let _matches = self.matches.as_ref().unwrap().get_default();
-        let mut matches = _matches.borrow_mut();
+        let mut matches = Vec::new();
         let candidate = Candidate::new(path);
-        self.set.matches_candidate_into(&candidate, &mut *matches);
+        self.set.matches_candidate_into(&candidate, &mut matches);
         for &i in matches.iter().rev() {
             let glob = &self.globs[i];
             if !glob.is_only_dir() || is_dir {
@@ -352,7 +346,6 @@ impl GitignoreBuilder {
             globs: self.globs.clone(),
             num_ignores: nignore as u64,
             num_whitelists: nwhite as u64,
-            matches: Some(Arc::new(ThreadLocal::default())),
         })
     }
 

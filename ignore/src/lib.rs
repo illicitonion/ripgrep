@@ -57,7 +57,6 @@ extern crate regex;
 extern crate same_file;
 #[cfg(test)]
 extern crate tempdir;
-extern crate thread_local;
 extern crate walkdir;
 #[cfg(windows)]
 extern crate winapi;

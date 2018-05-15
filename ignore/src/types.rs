@@ -84,14 +84,11 @@ assert!(matcher.matched("y.cpp", false).is_whitelist());
 ```
 */
 
-use std::cell::RefCell;
 use std::collections::HashMap;
 use std::path::Path;
-use std::sync::Arc;
 
 use globset::{GlobBuilder, GlobSet, GlobSetBuilder};
 use regex::Regex;
-use thread_local::ThreadLocal;
 
 use pathutil::file_name;
 use {Error, Match};
@@ -374,8 +371,6 @@ pub struct Types {
     glob_to_selection: Vec<(usize, usize)>,
     /// The set of all glob selections, used for actual matching.
     set: GlobSet,
-    /// Temporary storage for globs that match.
-    matches: Arc<ThreadLocal<RefCell<Vec<usize>>>>,
 }
 
 /// Indicates the type of a selection for a particular file type.
@@ -429,7 +424,6 @@ impl Types {
             has_selected: false,
             glob_to_selection: vec![],
             set: GlobSetBuilder::new().build().unwrap(),
-            matches: Arc::new(ThreadLocal::default()),
         }
     }
 
@@ -477,8 +471,8 @@ impl Types {
                 return Match::None;
             }
         };
-        let mut matches = self.matches.get_default().borrow_mut();
-        self.set.matches_into(name, &mut *matches);
+        let mut matches = Vec::new();
+        self.set.matches_into(name, &mut matches);
         // The highest precedent match is the last one.
         if let Some(&i) = matches.last() {
             let (isel, iglob) = self.glob_to_selection[i];
@@ -563,7 +557,6 @@ impl TypesBuilder {
             has_selected: has_selected,
             glob_to_selection: glob_to_selection,
             set: set,
-            matches: Arc::new(ThreadLocal::default()),
         })
     }
 
